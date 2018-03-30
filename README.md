@@ -55,13 +55,13 @@ Which should lead to the following solution to the input board:
 
 The output file will contain exactly the following lines:
 
-path_to_goal: ['Up', 'Left', 'Left']
-cost_of_path: 3
-nodes_expanded: 10
-search_depth: 3
-max_search_depth: 4
-running_time: 0.00188088
-max_ram_usage: 0.07812500
+1. path_to_goal: ['Up', 'Left', 'Left']
+2. cost_of_path: 3
+3. nodes_expanded: 10
+4. search_depth: 3
+5. max_search_depth: 4
+6. running_time: 0.00188088
+7. max_ram_usage: 0.07812500
 
 # Example Using Depth-First Search
 
@@ -75,10 +75,10 @@ Which should lead to the following solution to the input board:
 
 Should output:
 
-path_to_goal: ['Up', 'Left', 'Left']
-cost_of_path: 3
-nodes_expanded: 181437
-search_depth: 3
-max_search_depth: 66125
-running_time: 5.01608433
-max_ram_usage: 4.23940217
+1. path_to_goal: ['Up', 'Left', 'Left']
+2. cost_of_path: 3
+3. nodes_expanded: 181437
+4. search_depth: 3
+5. max_search_depth: 66125
+6. running_time: 5.01608433
+7. max_ram_usage: 4.23940217
