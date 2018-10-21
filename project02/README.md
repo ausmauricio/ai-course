@@ -4,7 +4,7 @@ Project 2 of Artificial Intelligence course on edX by Columbia University. [Link
 
 # Introduction
 
-This is an implementation of an agent capable of 'winning' [the 2048-puzzle game](gabrielecirulli.github.io/2048) using advanced techniques to probe the search space of the game. It is based on an adversarial search algorithm that plays the game intelligently, perhaps much more so than playing by hand.
+This is an implementation of an agent capable of 'winning' [the 2048-puzzle game](http://gabrielecirulli.github.io/2048) using advanced techniques to probe the search space of the game. It is based on an adversarial search algorithm that plays the game intelligently, perhaps much more so than playing by hand.
 
 # Instruction
 
