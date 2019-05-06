@@ -1,11 +1,16 @@
 from random import randint
 from BaseAI import BaseAI
 from time import clock
-from utils import Node, Queue
+from utils import Node
 from random import randint
 from Grid import Grid
+from sys import maxint
 
 #, apply_heuristic, order_terminal_nodes, run_minimax
+
+MAX_DEPTH = 4
+MIN_INT = -(maxint - 1)
+MAX_INIT = maxint
 
 class PlayerAI(BaseAI):
 
@@ -24,134 +29,176 @@ class PlayerAI(BaseAI):
 
     def getMove(self, grid):
 
-	# mixing up naming conventions
-
         begin = clock()
+        alpha, beta = MIN_INT, MAX_INIT
+
         root  = grid.clone()
+        self.root = Node(True, root, "root")
 
-        self.explored  = {}
-        self.root      = Node(True, root, "root")
-        self.max_depth = self.root.getDepth()
-        self.terminals = []
-        self.expired   = False
+        node, _ = self.max(self.root, alpha, beta)
 
-        frontier = Queue(self.root)
+        print("CPU Time: ", clock() - begin)
 
-        while not(frontier.isEmpty()) and not(self.expired):
-
-            self.curr_node = frontier.dequeue()
-            self.addExplored(self.curr_node)
-
-            for node in self.getChildren(self.curr_node.getCategory()):
-
-                self.curr_node.setIsTerminal(False)
-
-                if not(frontier.membershipChecking(node)) and not(self.wasExplored(node)):
-                    frontier.enqueue(node)
-                    if self.max_depth < node.getDepth(): self.max_depth = node.getDepth()
-
-            if(clock() - begin > 0.14): self.expired = True
-
-        while not(frontier.isEmpty()):
-
-            node = frontier.dequeue()
-            if node.getDepth() == self.max_depth and node.isTerminal():
-                self.terminals.append(node)
-
-        #print("explored")
-        #print(self.explored)
-        #print("terminals")
-        #print(self.terminals)
-        print("max depth")
-        print(self.max_depth)
-        print("CPU Time")
-        print(clock() - begin)
-        print("len terminals")
-        print(len(self.terminals))
-
-        if len(self.terminals):
-            max_value   = 0
-            action_node = None
-
-            for terminal in self.terminals:
-                #print(terminal)
-                value = self.calculate_value(terminal.__repr__())
-                if value > max_value:
-                    action_node = terminal
-                    max_value   = value
-
-            node = action_node
-
-            while(node.getParent().__repr__() != self.root.__repr__()):
-                    node = node.getParent()
-
-            print("CPU Time")
-            print(clock() - begin)
-
+        if node is not None:
             return node.getAction()
-
         else:
-
+            print("lol")
             moves = grid.getAvailableMoves()
-
-            print("CPU Time")
-            print(clock() - begin)
-
             return moves[randint(0, len(moves) - 1)] if moves else None
+        
+    def min(self, node, alpha, beta):
 
-    def calculate_value(self, string):
+        if node.getDepth() >= MAX_DEPTH:
+            return node, self.calculate_value(node.grid)
 
-        summ = 0
-        max_seen_value = 0
-        for s in string:
+        min_child, min_utility = None, MAX_INIT
 
-            if s == "0": summ+=8
-            elif int(s) > max_seen_value:
-                summ+=4*max_seen_value
-            else:        summ+=(int(s))
+        for child in self.get_children(node):
+            self.num_nodes+=1
 
-        return summ
+            _, utility = self.max(child, alpha, beta)
 
-    def addExplored(self, node):
+            if utility < min_utility:
+                min_child, min_utility = child, utility
 
-        self.explored[node.__repr__()] = True
+            if min_utility <= alpha:
+                break
 
-    def wasExplored(self, node):
+            if min_utility < beta:
+                beta = min_utility
 
-        return True if node.__repr__() in self.explored else False
+        return min_child, min_utility
 
-    def getChildren(self, category):
+    def max(self, node, alpha, beta):
 
-         children = []
-         #print(self.curr_node.getDepth())
+        if node.getDepth() >= MAX_DEPTH:
+            return node, self.calculate_value(node.grid)
 
-         if category in ("player", "root"):
+        max_child, max_utility = None, MIN_INT
 
-            moves = self.curr_node.getGrid().getAvailableMoves()
-            curr_backup = self.clone(self.curr_node.getGrid())
+        for child in self.get_children(node):
+            self.num_nodes+=1
+
+            _, utility = self.min(child, alpha, beta)
+
+            if utility > max_utility:
+                max_child, max_utility = child, utility
+
+            if max_utility >= beta:
+                break
+
+            if max_utility > alpha:
+                alpha = max_utility
+
+        return max_child, max_utility
+
+    def calculate_value(self, grid):
+
+        """
+        Most of the heuristics used to evaluate a grid score were based
+        on this epic Stackoverflow answer:
+
+        https://stackoverflow.com/questions/22342854/what-is-the-optimal-algorithm-for-the-game-2048
+
+        The weights were adjusted manually.
+        As a next step, employing machine learning techniques to find out best weights values
+        is desirable. In particular, the weight for smoothness hasn't been tested much.
+
+        Also implement smoothness in a loop lol.
+        
+        Monotonicity (higher values on the corner) should always be the dominant overall, 
+        and the other three weights work 'resolving a tie' ""
+
+        """
+        
+        blank_cells = len(grid.getAvailableCells())
+
+        smoothness = 0
+
+        smoothness += 10 if grid.map[0][0] == grid.map[0][1] else 0 # 1
+        smoothness += 10 if grid.map[0][0] == grid.map[1][0] else 0 # 1
+
+        smoothness += 10 if grid.map[0][1] == grid.map[0][2] else 0 # 2
+        smoothness += 10 if grid.map[0][1] == grid.map[1][1] else 0 # 2
+
+        smoothness += 10 if grid.map[0][2] == grid.map[0][3] else 0 # 3
+        smoothness += 10 if grid.map[0][2] == grid.map[1][2] else 0 # 3
+
+        smoothness += 10 if grid.map[0][3] == grid.map[1][3] else 0 # 4
+
+        smoothness += 10 if grid.map[1][0] == grid.map[1][1] else 0 # 5
+        smoothness += 10 if grid.map[1][0] == grid.map[2][0] else 0 # 5
+
+        smoothness += 10 if grid.map[1][1] == grid.map[1][2] else 0 # 6
+        smoothness += 10 if grid.map[1][1] == grid.map[2][1] else 0 # 6
+
+        smoothness += 10 if grid.map[1][2] == grid.map[1][3] else 0 # 7
+        smoothness += 10 if grid.map[1][2] == grid.map[2][2] else 0 # 7
+
+        smoothness += 10 if grid.map[1][3] == grid.map[2][3] else 0 # 8
+
+        smoothness += 10 if grid.map[2][0] == grid.map[2][1] else 0 # 9
+        smoothness += 10 if grid.map[2][0] == grid.map[3][0] else 0 # 9
+
+        smoothness += 10 if grid.map[2][1] == grid.map[2][2] else 0 # 10
+        smoothness += 10 if grid.map[2][1] == grid.map[3][1] else 0 # 10
+
+        smoothness += 10 if grid.map[2][2] == grid.map[2][2] else 0 # 11
+        smoothness += 10 if grid.map[2][2] == grid.map[3][2] else 0 # 11
+
+        smoothness += 10 if grid.map[2][3] == grid.map[3][3] else 0 # 12
+
+        smoothness += 10 if grid.map[3][0] == grid.map[3][1] else 0 # 13
+        smoothness += 10 if grid.map[3][1] == grid.map[3][2] else 0 # 13
+        smoothness += 10 if grid.map[3][2] == grid.map[3][3] else 0 # 15
+
+        mask = [[4096,1024,256,64],
+                [1024,256,64,16],
+                [256,64,16,4],
+                [64,16,4,1]]
+
+        monotonicity = 0
+        for r in range(3):
+            for c in range(3):
+                monotonicity += grid.map[r][c] * mask[r][c]        
+
+        bonus = 0
+        if grid.getMaxTile() in (grid.map[0][0], grid.map[0][3], grid.map[3][0], grid.map[3][3]):
+            bonus=10
+
+        sum = 3*blank_cells + 1*monotonicity + 2*bonus + 1*smoothness
+        return sum
+
+    def get_children(self, node):
+
+        category = node.getCategory()
+        children = []
+
+        if category in ("player", "root"):
+
+            moves = node.getGrid().getAvailableMoves()
+            curr_backup = self.clone(node.getGrid())
 
             for move in moves:
 
                 curr_backup.move(move)
-                #print("new move")
-                #print(curr_backup.map)
-                children.append(Node(False, curr_backup, "computer", self.curr_node, move))
-                curr_backup = self.clone(self.curr_node.getGrid())
+                children.append(Node(False, curr_backup, "computer", node, move))
+                curr_backup = self.clone(node.getGrid())
 
-         elif category == "computer":
+        elif category == "computer":
 
-             cells = self.curr_node.getGrid().getAvailableCells()
-             curr_backup = self.clone(self.curr_node.getGrid())
+            cells = node.getGrid().getAvailableCells()
+            curr_backup = self.clone(node.getGrid())
 
-             for cell in cells:
+            for cell in cells:
 
-                 curr_backup.setCellValue(cell, 2 if randint(1,10)%2 else 4)
-                 #print("new tile")
-                 #print(curr_backup.map)
-                 children.append(Node(False, curr_backup, "player", self.curr_node))
-                 curr_backup = self.clone(self.curr_node.getGrid())
+                curr_backup.setCellValue(cell, 2)
+                children.append(Node(False, curr_backup, "player", node))
+                curr_backup = self.clone(node.getGrid())
+                curr_backup.setCellValue(cell,4)
+                children.append(Node(False, curr_backup, "player", node))
 
-         return children
+        return children
 
     def clone(self, grid):
 

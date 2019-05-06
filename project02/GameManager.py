@@ -98,6 +98,7 @@ class GameManager:
                     self.over = True
 
             if not self.over:
+                #pass
                 self.displayer.display(self.grid)
 
             # Exceeding the Time Allotted for Any Turn Terminates the Game
